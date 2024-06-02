@@ -61,7 +61,7 @@ echo "Start Combined"
 cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.bin tools/generate/
 
 cd tools/generate/
-./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 510fb093 a3cbeadc 5993a17e c7adeb03 10000
+./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
 python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 
 ./${BEKEN_PACK} config.json
@@ -75,7 +75,7 @@ rm ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin
 
 #generate ota file
 echo "generate ota file"
-./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k 5AC0EE0B2379005E3F52CCA49B2D741D -i 0123456789ABCDEF
+./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k BDB4CE110F4787C2F539BF50E30A14E0 -i 0123456789ABCDEF
 ./${TY_PACKAGE} ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_BIN_NAME}_UG_${APP_VERSION}.bin $APP_VERSION 
 echo rm ${APP_BIN_NAME}_${APP_VERSION}.rbl
 rm ${APP_BIN_NAME}_${APP_VERSION}.bin
