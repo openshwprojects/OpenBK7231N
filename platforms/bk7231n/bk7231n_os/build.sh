@@ -3,11 +3,13 @@ APP_BIN_NAME=$1
 APP_VERSION=$2
 TARGET_PLATFORM=$3
 USER_CMD=$4
+BUILD_MODE=$5
 
 echo APP_BIN_NAME=$APP_BIN_NAME
 echo APP_VERSION=$APP_VERSION
 echo TARGET_PLATFORM=$TARGET_PLATFORM
 echo USER_CMD=$USER_CMD
+echo BUILD_MODE=$BUILD_MODE
 
 USER_SW_VER=`echo $APP_VERSION | cut -d'-' -f1`
 
@@ -55,14 +57,21 @@ else
 	make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION clean -C ./
 fi
 
-make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION $USER_CMD -j -C ./
+make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION $USER_CMD $BUILD_MODE -j -C ./
 
 echo "Start Combined"
 cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.bin tools/generate/
 
 cd tools/generate/
-./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 510fb093 a3cbeadc 5993a17e c7adeb03 10000
-python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+if [ "$BUILD_MODE" = "zerokeys" ]; then
+	echo "Using zero keys mode - for those non-Tuya devices"
+	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
+	python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+else
+	echo "Using usual Tuya path"
+	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 510fb093 a3cbeadc 5993a17e c7adeb03 10000
+	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+fi
 
 ./${BEKEN_PACK} config.json
 
