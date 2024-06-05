@@ -66,7 +66,8 @@ cd tools/generate/
 if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
-	python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+	#python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 else
 	echo "Using usual Tuya path"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 510fb093 a3cbeadc 5993a17e c7adeb03 10000
@@ -101,6 +102,15 @@ if [ `ls -l ${APP_BIN_NAME}_UG_${APP_VERSION}.bin | awk '{print $5}'` -gt 679936
 	rm ${APP_BIN_NAME}_UA_${APP_VERSION}.bin
 	rm ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
 	exit 1
+fi
+
+if [ "$BUILD_MODE" = "zerokeys" ]; then
+	TEMP_FILE=$(mktemp)
+	
+	dd if="bk7231n_bootloader_zero_keys.bin" bs=1 count=65536 of="$TEMP_FILE"
+	dd if="${APP_BIN_NAME}_QIO_${APP_VERSION}.bin" bs=1 skip=65536 of="$TEMP_FILE" seek=65536
+	mv "$TEMP_FILE" "${APP_BIN_NAME}_QIO_${APP_VERSION}.bin"
+	echo "Successfully overwrote bootloader."
 fi
 
 echo "$(pwd)"
