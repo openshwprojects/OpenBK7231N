@@ -63,6 +63,9 @@ echo "Start Combined"
 cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.bin tools/generate/
 
 cd tools/generate/
+
+cp ${APP_BIN_NAME}_${APP_VERSION}.bin ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin
+
 if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
@@ -118,6 +121,22 @@ cp ${APP_BIN_NAME}_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$AP
 cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+
+
+
+echo "Will do extra step - for zero keys/dogness"
+cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
+echo "Will do zero keys encrypt"
+./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
+echo "Will do zero mpytools.py"
+python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+echo "Will do zero BEKEN_PACK"
+./${BEKEN_PACK} config.json
+echo "Will do zero qio"
+cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
+
 
 echo "*************************************************************************"
 echo "*************************************************************************"
