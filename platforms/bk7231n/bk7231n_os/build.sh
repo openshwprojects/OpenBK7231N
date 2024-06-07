@@ -65,11 +65,11 @@ cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.
 cd tools/generate/
 if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
-	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
+	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379a 8612784b 85c5e258 75754528 10000
 	python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 else
 	echo "Using usual Tuya path"
-	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
+	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379a 8612784b 85c5e258 75754528 10000
 	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 fi
 
@@ -84,7 +84,7 @@ rm ${APP_BIN_NAME}_${APP_VERSION}_enc_uart_1.00.bin
 
 #generate ota file
 echo "generate ota file"
-./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k 4862379a8612784b85c5e25875754528 -i 0123456789ABCDEF
+./${RT_OTA_PACK_TOOL} -f ${APP_BIN_NAME}_${APP_VERSION}.bin -v $CURRENT_TIME -o ${APP_BIN_NAME}_${APP_VERSION}.rbl -p app -c gzip -s aes -k 0123456789ABCDEF0123456789ABCDEF -i 0123456789ABCDEF
 ./${TY_PACKAGE} ${APP_BIN_NAME}_${APP_VERSION}.rbl ${APP_BIN_NAME}_UG_${APP_VERSION}.bin $APP_VERSION 
 echo rm ${APP_BIN_NAME}_${APP_VERSION}.rbl
 rm ${APP_BIN_NAME}_${APP_VERSION}.bin
