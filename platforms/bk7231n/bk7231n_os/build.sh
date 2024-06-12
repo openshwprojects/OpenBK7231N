@@ -54,7 +54,7 @@ done
 if [ -z $CI_PACKAGE_PATH ]; then
     echo "not is ci build"
 else
-	make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION clean -C ./
+	make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION clean -C ./ 
 fi
 
 make APP_BIN_NAME=$APP_BIN_NAME USER_SW_VER=$USER_SW_VER APP_VERSION=$APP_VERSION $USER_CMD -j -C ./
@@ -65,11 +65,11 @@ cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.
 cd tools/generate/
 if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
-	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379a 8612784b 85c5e258 75754528 10000
+	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 9A376248 4B781286 58E2C585 28457575 10000
 	python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 else
 	echo "Using usual Tuya path"
-	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379a 8612784b 85c5e258 75754528 10000
+	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 9A376248 4B781286 58E2C585 28457575 10000
 	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 fi
 
