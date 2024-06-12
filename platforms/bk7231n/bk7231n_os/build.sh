@@ -63,6 +63,9 @@ echo "Start Combined"
 cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.bin tools/generate/
 
 cd tools/generate/
+
+cp ${APP_BIN_NAME}_${APP_VERSION}.bin ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin
+
 if [ "$BUILD_MODE" = "zerokeys" ]; then
 	echo "Using zero keys mode - for those non-Tuya devices"
 	./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 9A376248 4B781286 58E2C585 28457575 10000
@@ -103,11 +106,36 @@ if [ `ls -l ${APP_BIN_NAME}_UG_${APP_VERSION}.bin | awk '{print $5}'` -gt 679936
 	exit 1
 fi
 
+if [ "$BUILD_MODE" = "zerokeys" ]; then
+	TEMP_FILE=$(mktemp)
+	
+	dd if="bk7231n_bootloader_zero_keys.bin" bs=1 count=65536 of="$TEMP_FILE"
+	dd if="${APP_BIN_NAME}_QIO_${APP_VERSION}.bin" bs=1 skip=65536 of="$TEMP_FILE" seek=65536
+	mv "$TEMP_FILE" "${APP_BIN_NAME}_QIO_${APP_VERSION}.bin"
+	echo "Successfully overwrote bootloader."
+fi
+
 echo "$(pwd)"
 cp ${APP_BIN_NAME}_${APP_VERSION}.rbl ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.rbl
 cp ${APP_BIN_NAME}_UG_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UG_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_UA_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+
+
+
+echo "Will do extra step - for zero keys/dogness"
+cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
+echo "Will do zero keys encrypt"
+./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
+echo "Will do zero mpytools.py"
+python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+echo "Will do zero BEKEN_PACK"
+./${BEKEN_PACK} config.json
+echo "Will do zero qio"
+cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
+
 
 echo "*************************************************************************"
 echo "*************************************************************************"
