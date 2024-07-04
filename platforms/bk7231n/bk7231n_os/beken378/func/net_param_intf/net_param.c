@@ -14,6 +14,8 @@
 
 #define FIXED_MAC_ADDRESS {0x00, 0x16, 0x3E, 0x5F, 0x1C, 0xAD}
 
+static UINT8 fixed_mac[] = FIXED_MAC_ADDRESS;
+
 static UINT32 search_info_tbl(UINT8 *buf, UINT32 *cfg_len)
 {
     UINT32 ret = 0, status;
@@ -257,7 +259,6 @@ UINT32 save_info_item(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2)
 
     case WIFI_MAC_ITEM:
     {
-        UINT8 fixed_mac[] = FIXED_MAC_ADDRESS;
         os_memcpy(item_buf, fixed_mac, sizeof(fixed_mac));
         printf("Saving fixed MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", 
                 fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
