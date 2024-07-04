@@ -260,10 +260,15 @@ UINT32 save_info_item(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2)
         UINT8 fixed_mac[] = FIXED_MAC_ADDRESS;
         os_memcpy(item_buf, fixed_mac, sizeof(fixed_mac));
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         printf("Saving fixed MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", 
                 fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
 >>>>>>> 0f00ec04a188e2137eeb3569881a53a0088ef645
+=======
+        printf("Saving fixed MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+                fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
+>>>>>>> 0f00ec0 (Update net_param.c)
         break;
     }
 
