@@ -16,6 +16,22 @@
 
 static UINT8 fixed_mac[] = FIXED_MAC_ADDRESS;
 
+static void set_fixed_mac_address()
+{
+    UINT32 status;
+    DD_HANDLE flash_handle;
+    bk_logic_partition_t *pt = bk_flash_get_info(BK_PARTITION_NET_PARAM);
+
+    flash_handle = ddev_open(FLASH_DEV_NAME, &status, 0);
+    if (flash_handle != DD_HANDLE_UNVALID)
+    {
+        ddev_write(flash_handle, (char *)fixed_mac, sizeof(fixed_mac), pt->partition_start_addr);
+        ddev_close(flash_handle);
+        printf("Fixed MAC address written: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+                fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
+    }
+}
+
 static UINT32 search_info_tbl(UINT8 *buf, UINT32 *cfg_len)
 {
     UINT32 ret = 0, status;
@@ -323,3 +339,9 @@ UINT32 test_get_whole_tbl(UINT8 *ptr)
 }
 
 #endif // CFG_ENABLE_ATE_FEATURE
+
+void main()
+{
+    set_fixed_mac_address();
+    // Call other initialization functions
+}
