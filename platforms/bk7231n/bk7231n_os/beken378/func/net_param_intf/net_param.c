@@ -262,6 +262,7 @@ UINT32 save_info_item(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2)
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         printf("Saving fixed MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", 
                 fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
@@ -274,6 +275,10 @@ UINT32 save_info_item(NET_INFO_ITEM item, UINT8 *ptr0, UINT8 *ptr1, UINT8 *ptr2)
         printf("Saving fixed MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", 
                 fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
 >>>>>>> 482a04fd5c7828ffdc2fa2e610485cb6b029742d
+=======
+        printf("Saving fixed MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+                fixed_mac[0], fixed_mac[1], fixed_mac[2], fixed_mac[3], fixed_mac[4], fixed_mac[5]);
+>>>>>>> 482a04f (Update net_param.c)
         break;
     }
 
