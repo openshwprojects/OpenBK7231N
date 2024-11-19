@@ -761,10 +761,10 @@ void uart2_isr(void)
 		//20241119 XJIKKA if ATE_APP_FUN is not tested, reading UART2 is not functional. 
 		//uart_read_fifo_frame() clears the FIFO_RD_READY flag and therefore further reading is not possible.
 		#if ATE_APP_FUN
-        if (get_ate_mode_state())
-		{
-		uart_read_fifo_frame(UART2_PORT, uart[UART2_PORT].rx);
-		}
+			if (get_ate_mode_state())
+			{
+				uart_read_fifo_frame(UART2_PORT, uart[UART2_PORT].rx);
+			}
 		#endif
 	#endif
 
