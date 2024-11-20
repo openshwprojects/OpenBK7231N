@@ -758,8 +758,8 @@ void uart2_isr(void)
     if(status & (RX_FIFO_NEED_READ_STA | UART_RX_STOP_END_STA))
     {
 	#if (!CFG_SUPPORT_RTT)
-		//20241119 XJIKKA if ATE_APP_FUN is not tested, reading UART2 is not functional. 
-		//uart_read_fifo_frame() clears the FIFO_RD_READY flag and therefore further reading is not possible.
+		//20241119 XJIKKA ATE_APP_FUN and get_ate_mode_state() were not checked, 
+		//therefore uart_read_fifo_frame() clears FIFO_RD_READY flag and further reading was not possible.
 		#if ATE_APP_FUN
 			if (get_ate_mode_state())
 			{
