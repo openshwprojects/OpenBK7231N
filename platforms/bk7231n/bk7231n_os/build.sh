@@ -80,6 +80,7 @@ else
 	python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 fi
 
+
 ./${BEKEN_PACK} config.json
 
 echo "End Combined"
@@ -127,6 +128,9 @@ cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output
 
 
 
+# 
+# 	BK7231M steps (zero keys)
+# 
 echo "Will do extra step - for zero keys/dogness"
 # cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
@@ -141,6 +145,18 @@ cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_QIO_${APP_VERSION}.bin
 cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231M_UA_${APP_VERSION}.bin
 
+
+# 
+# 	UASCENT steps (4862379A 8612784B 85C5E258 75754528)
+# 
+# cp [sourceFile] [destinationFile]
+cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
+# ENCRYPT_NEW is cmake_encrypt_crc.exe
+# this shall generate bk7231n_bootloader_uascent_enc.bin for bk7231n_bootloader_uascent.bin
+./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
+	
+	
+	
 
 echo "*************************************************************************"
 echo "*************************************************************************"
