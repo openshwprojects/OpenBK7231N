@@ -25,6 +25,7 @@ if [ $SYSTEM = "Linux" ]; then
 	BEKEN_PACK=${TOOL_DIR}/beken_packager
 	RT_OTA_PACK_TOOL=${TOOL_DIR}/rt_ota_packaging_tool_cli
 	TY_PACKAGE=${TOOL_DIR}/package
+	ENCRYPT_NEW=${TOOL_DIR}/cmake_encrypt_crc
 else
 	TOOL_DIR=package_tool/windows
 	OTAFIX=${TOOL_DIR}/otafix.exe
@@ -32,6 +33,7 @@ else
 	BEKEN_PACK=${TOOL_DIR}/beken_packager.exe
 	RT_OTA_PACK_TOOL=${TOOL_DIR}/rt_ota_packaging_tool_cli.exe
 	TY_PACKAGE=${TOOL_DIR}/package.exe
+	ENCRYPT_NEW=${TOOL_DIR}/cmake_encrypt_crc.exe
 fi
 
 APP_PATH=../../../apps
@@ -64,6 +66,7 @@ cp ${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/${APP_BIN_NAME}_${APP_VERSION}.
 
 cd tools/generate/
 
+# cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}.bin ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin
 
 if [ "$BUILD_MODE" = "zerokeys" ]; then
@@ -125,6 +128,7 @@ cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output
 
 
 echo "Will do extra step - for zero keys/dogness"
+# cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
 echo "Will do zero keys encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
