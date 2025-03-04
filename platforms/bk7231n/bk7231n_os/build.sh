@@ -141,7 +141,7 @@ echo "Will do zero keys encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
 echo "Will do zero mpytools.py to generate config.json"
 # python mpytools.py [BootloaderFile] [AppFile]
-python mpytools.py bk7231n_bootloader_zero_keys.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
 echo "Will do zero BEKEN_PACK"
 ./${BEKEN_PACK} config.json
 echo "Will do zero qio"
