@@ -132,8 +132,10 @@ cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output
 # 	BK7231M steps (zero keys)
 # 
 echo "Will do extra step - for zero keys/dogness"
+# Blank-start with zero keys bin
 # cp [sourceFile] [destinationFile]
 cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
+# Apply keys
 echo "Will do zero keys encrypt"
 ./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 00000000 00000000 00000000 00000000 10000
 echo "Will do zero mpytools.py"
@@ -154,7 +156,20 @@ cp bk7231n_bootloader.bin bk7231n_bootloader_uascent.bin
 # ENCRYPT_NEW is cmake_encrypt_crc.exe
 # this shall generate bk7231n_bootloader_uascent_enc.bin for bk7231n_bootloader_uascent.bin
 ./${ENCRYPT_NEW} -enc bk7231n_bootloader_uascent.bin 4862379A 8612784B 85C5E258 75754528 -crc
-	
+# Blank-start with zero keys bin
+# cp [sourceFile] [destinationFile]
+cp ${APP_BIN_NAME}_${APP_VERSION}_zeroKeys.bin ${APP_BIN_NAME}_${APP_VERSION}.bin
+# Apply keys
+echo "Will do UASCENT encrypt"
+./${ENCRYPT} ${APP_BIN_NAME}_${APP_VERSION}.bin 4862379A 8612784B 85C5E258 75754528 10000	
+echo "Will do UASCENT mpytools.py"
+python mpytools.py bk7231n_bootloader_enc.bin ${APP_BIN_NAME}_${APP_VERSION}_enc.bin
+echo "Will do UASCENT BEKEN_PACK"
+./${BEKEN_PACK} config.json
+echo "Will do UASCENT qio"
+cp all_1.00.bin ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_QIO_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_QIO_${APP_VERSION}.bin
+cp ${APP_BIN_NAME}_UA_${APP_VERSION}.bin ../../${APP_PATH}/$APP_BIN_NAME/output/$APP_VERSION/OpenBK7231N_UASCENT_UA_${APP_VERSION}.bin
 	
 	
 
