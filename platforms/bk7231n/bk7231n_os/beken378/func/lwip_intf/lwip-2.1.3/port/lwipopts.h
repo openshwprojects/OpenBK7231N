@@ -32,6 +32,9 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#include <sys/time.h>
+
+#define LWIP_TIMEVAL_PRIVATE 0
 
 /**
  * Loopback demo related options.

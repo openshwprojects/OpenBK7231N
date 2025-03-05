@@ -8,6 +8,11 @@ typedef void (*FUNCTICKPTR)(uint32_t ticks);
 typedef void (*FUNC_1PARAM_PTR)(void *ctxt);
 typedef void (*FUNC_2PARAM_PTR)(void *arg, uint8_t vif_idx);
 
+#define __uint8_t uint8_t
+#define __uint16_t uint16_t
+#define __uint32_t uint32_t
+#define __uint64_t uint64_t
+
 #ifndef MAX
 #define MAX(x, y)                  (((x) > (y)) ? (x) : (y))
 #endif

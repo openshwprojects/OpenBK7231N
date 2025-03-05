@@ -198,12 +198,18 @@ extern UINT32 last_rw_time;
 __INLINE uint32_t hal_machw_time(void)
 {
 	uint32_t time = nxmac_monotonic_counter_2_lo_get();
-	if ((time == 0xdead5555) && (last_rw_time != 0xdead5555))
-		time = last_rw_time;
+    if((time == 0xdead5555) && (last_rw_time != 0xdead5555))
+    {
+        time = last_rw_time;
+    }
     else if(time != 0xdead5555)
+    {
         last_rw_time = time;
-	if (time == 0xdead5555)
-		bk_printf("XXXXXXXXXX time dead 2\r\n");
+    }
+    if(time == 0xdead5555)
+    {
+        bk_printf("XXXXXXXXXX time dead 2\r\n");
+    }
     return time;
 }
 

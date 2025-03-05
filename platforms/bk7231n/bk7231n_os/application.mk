@@ -7,9 +7,10 @@ ifeq ($(shell uname), Linux)
 else
   TOOLCHAIN_DIR := ../toolchain/windows
 endif
-ARM_GCC_TOOLCHAIN = $(TOOLCHAIN_DIR)/gcc-arm-none-eabi-4_9-2015q1/bin
+#ARM_GCC_TOOLCHAIN = $(TOOLCHAIN_DIR)/gcc-arm-none-eabi-4_9-2015q1/bin
 
-CROSS_COMPILE = $(ARM_GCC_TOOLCHAIN)/arm-none-eabi-
+#CROSS_COMPILE = $(ARM_GCC_TOOLCHAIN)/arm-none-eabi-
+CROSS_COMPILE = arm-none-eabi-
 
 CFG_BLE_5X_VERSION ?= 1
 CFG_BLE_5X_RW ?= 1
@@ -267,6 +268,7 @@ SRC_C += ./beken378/app/standalone-station/sa_station.c
 SRC_C += ./beken378/demo/ieee802_11_demo.c
 
 #driver layer
+SRC_C += ./beken378/driver/calendar/calendar.c
 SRC_C += ./beken378/driver/common/dd.c
 SRC_C += ./beken378/driver/common/drv_model.c
 SRC_C += ./beken378/driver/dma/dma.c
@@ -991,7 +993,7 @@ CPPDEFINES += -DPLATFORM_BK7231N=1
 CPPDEFINES += -DPLATFORM_BEKEN=1
 
 CCFLAGS = $(CPPDEFINES)
-CCFLAGS += -g -mthumb -mcpu=arm968e-s -march=armv5te -mthumb-interwork -mlittle-endian -Os
+CCFLAGS += -g0 -mthumb -mcpu=arm968e-s -march=armv5te -mthumb-interwork -mlittle-endian -Os
 CCFLAGS += -ffunction-sections -Wall -fsigned-char -fdata-sections -Wunknown-pragmas -nostdlib -Wno-unused-function -Wno-unused-but-set-variable
 
 CXXFLAGS = $(CCFLAGS)
@@ -1001,13 +1003,13 @@ CFLAGS = $(CCFLAGS)
 CFLAGS += -std=c99 -Wunknown-pragmas -nostdlib -Wall
 
 OSFLAGS =
-OSFLAGS += -g -marm -mcpu=arm968e-s -march=armv5te -mthumb-interwork -mlittle-endian -Os -std=c99 -ffunction-sections -Wall -fsigned-char -fdata-sections -Wunknown-pragmas
+OSFLAGS += -g0 -marm -mcpu=arm968e-s -march=armv5te -mthumb-interwork -mlittle-endian -Os -std=c99 -ffunction-sections -Wall -fsigned-char -fdata-sections -Wunknown-pragmas
 
 ASMFLAGS = 
-ASMFLAGS += -g -marm -mthumb-interwork -mcpu=arm968e-s -march=armv5te -x assembler-with-cpp
+ASMFLAGS += -g0 -marm -mthumb-interwork -mcpu=arm968e-s -march=armv5te -x assembler-with-cpp
 
 LFLAGS = 
-LFLAGS += -g -Wl,--gc-sections -marm -mcpu=arm968e-s -mthumb-interwork
+LFLAGS += -g0 -Wl,--gc-sections -marm -mcpu=arm968e-s -mthumb-interwork
 # LFLAGS += -nostdlib
 LFLAGS += -Xlinker -Map=tuya.map
 LFLAGS += -Wl,-wrap,malloc -Wl,-wrap,_malloc_r -Wl,-wrap,free -Wl,-wrap,_free_r -Wl,-wrap,zalloc -Wl,-wrap,calloc -Wl,-wrap,realloc  -Wl,-wrap,_realloc_r

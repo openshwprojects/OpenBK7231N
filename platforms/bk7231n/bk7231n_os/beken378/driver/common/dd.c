@@ -19,6 +19,7 @@
 #include "irda_pub.h"
 #include "mac_phy_bypass_pub.h"
 #include "bk_timer_pub.h"
+#include "calendar_pub.h"
 
 #if CFG_USE_CAMERA_INTF
 #include "jpeg_encoder_pub.h"
@@ -56,6 +57,8 @@ static DD_INIT_S dd_init_tbl[] =
     {ICU_DEV_NAME,          icu_init,                   icu_exit},
     {WDT_DEV_NAME,          wdt_init,                   wdt_exit},
     {GPIO_DEV_NAME,         gpio_init,                  gpio_exit},
+
+    {CAL_DEV_NAME,          cal_init,                   cal_exit},
     
 #ifndef KEIL_SIMULATOR    
     {UART2_DEV_NAME,        uart2_init,                 uart2_exit},

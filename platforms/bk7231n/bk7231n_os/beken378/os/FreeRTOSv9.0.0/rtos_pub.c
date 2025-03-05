@@ -11,6 +11,7 @@
 #include "includes.h"
 #include "uart_pub.h"
 #include "string.h"
+#include "calendar_pub.h"
 
 /******************************************************
  *                      Macros
@@ -74,7 +75,6 @@ OSStatus rtos_push_to_queue( beken_queue_t* queue, void* message, uint32_t timeo
 /******************************************************
  *               Variables Definitions
  ******************************************************/
-xTaskHandle  app_thread_handle;
 static beken_time_t beken_time_offset = 0;
 
 
@@ -1030,6 +1030,11 @@ void rtos_resume_thread(beken_thread_t* thread)
 beken_time_t rtos_get_time( void )
 {
     return (beken_time_t) ( xTaskGetTickCount() * ms_to_tick_ratio );
+}
+
+uint64_t rtos_get_time_us(void)
+{
+    return (uint64_t)cal_get_time_us();
 }
 
 /**
