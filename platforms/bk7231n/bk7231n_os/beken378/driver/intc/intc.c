@@ -362,6 +362,20 @@ void intc_init(void)
     *((volatile uint32_t *)0x400014) = (uint32_t)&do_dabort;
     *((volatile uint32_t *)0x400018) = (uint32_t)&do_reserved;
 
+    /*
+     * Deep-sleep wakeup is not a full cold boot: some interrupt status bits can
+     * remain set. If we enable global IRQ/FIQ here while a pending interrupt is
+     * already latched, we may enter IRQ/FIQ handlers before the OS/heap is ready,
+     * and get stuck very early in boot (no further logs after bk_misc_init_start_type).
+     *
+     * Clear any pending interrupt status before enabling sources.
+     */
+    {
+        UINT32 clr = 0xFFFFFFFF;
+        icu_ctrl(CMD_CLR_INTR_STATUS, &clr);
+        icu_ctrl(CMD_CLR_INTR_RAW_STATUS, &clr);
+    }
+
     intc_enable(FIQ_MAC_GENERAL);
     intc_enable(FIQ_MAC_PROT_TRIGGER);
 
