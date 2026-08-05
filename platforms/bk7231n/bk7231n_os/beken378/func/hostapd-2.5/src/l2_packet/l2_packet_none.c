@@ -20,6 +20,12 @@
 
 #define L2_RX_TMP_BUF_LEN     512
 
+/* Above the LMAC TX_TIMEOUT watchdog (2 s for AC_BE/VI), which escalates to
+ * txl_reset() and does confirm the descriptors, so a real hardware stall is
+ * still rescued; below the AP's ~3 s 4-way handshake window, so a lost
+ * confirmation cannot outlive the exchange it belongs to. */
+#define EAPOL_TX_CONFIRM_TIMEOUT_MS   2500
+
 struct l2_packet_data {
 	char ifname[17];
 	u8 own_addr[ETH_ALEN];
@@ -48,24 +54,20 @@ int __l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 {
 	int data_len, ret = 0;
 	struct l2_ethhdr *eth;
-    S_TYPE_PTR type_ptr;
+	S_TYPE_PTR type_ptr;
 	unsigned char *data_buf = NULL;
-	struct ieee80211_tx_cb cb;	//control block
+	struct ieee80211_tx_cb *cb = NULL;	//control block
 
 	type_ptr = os_zalloc(sizeof(S_TYPE_ST));
-    if(!type_ptr) {
-		ret = -1;
-        if(type_ptr){
-            os_free(type_ptr);
-        }
-		goto send_exit;
-    }
+	if (!type_ptr) {
+		return -1;
+	}
 
 	data_len = len + sizeof(struct l2_ethhdr);
 	data_buf = os_zalloc(data_len);
-	if(data_buf == NULL){
-		ret = -1;
-		goto send_exit;
+	if (data_buf == NULL) {
+		os_free(type_ptr);
+		return -1;
 	}
 
 	eth = (struct l2_ethhdr *) data_buf;
@@ -74,40 +76,63 @@ int __l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 	eth->h_proto = host_to_be16(proto);
 	os_memcpy(eth+1, buf, len);
 
-    type_ptr->type = HOSTAPD_DATA;
-
-    type_ptr->vif_index = l2->vif_index;
+	type_ptr->type = HOSTAPD_DATA;
+	type_ptr->vif_index = l2->vif_index;
 	type_ptr->sync = sync;
 
-	cb.result = -1;
 	if (sync) {
-#if CFG_SUPPORT_ALIOS
-		ret = rtos_init_semaphore(&cb.sema, 0);
-#else
-		ret = rtos_init_semaphore(&cb.sema, 1);
-#endif
-		type_ptr->args = (void *)&cb;
-	}
-
-	fsocket_send(l2->fd, data_buf, data_len, type_ptr);
-	if (sync) {
-		ret = rtos_get_semaphore(&cb.sema, 5*1000 /*BEKEN_NEVER_TIMEOUT*/);
-		if (ret != kNoErr) {
-			bk_printf("%s: send failed\r\n", __func__);
-		} else {
-			ret = cb.result;
-			bk_printf("%s: ret %d\r\n", __func__, ret);
+		/* The TX path may complete after we have given up waiting, so the
+		 * control block must not live on this stack frame. */
+		cb = os_zalloc(sizeof(*cb));
+		if (cb == NULL) {
+			os_free(data_buf);
+			os_free(type_ptr);
+			return -1;
 		}
-		rtos_deinit_semaphore(&cb.sema);
+		cb->result = -1;
+#if CFG_SUPPORT_ALIOS
+		rtos_init_semaphore(&cb->sema, 0);
+#else
+		rtos_init_semaphore(&cb->sema, 1);
+#endif
+		type_ptr->args = (void *)cb;
 	}
 
-send_exit:
-	if(data_buf){
+	/* Ownership of type_ptr (and of cb through it) transfers to the TX path
+	 * only once the frame has actually been queued. */
+	if (fsocket_send(l2->fd, data_buf, data_len, type_ptr) <= 0) {
+		if (cb) {
+			rtos_deinit_semaphore(&cb->sema);
+			os_free(cb);
+		}
+		os_free(type_ptr);
 		os_free(data_buf);
+		return -1;
 	}
+
+	os_free(data_buf);
+
+	if (!sync) {
+		return 0;
+	}
+
+	ret = rtos_get_semaphore(&cb->sema, EAPOL_TX_CONFIRM_TIMEOUT_MS);
+	if (ret != kNoErr) {
+		/* The frame is still queued and still points at cb. Deliberately
+		 * leave cb allocated: a late completion writing into freed memory
+		 * would be far worse than losing a few bytes here. */
+		bk_printf("%s: send failed\r\n", __func__);
+		return -1;
+	}
+
+	ret = cb->result;
+	bk_printf("%s: ret %d\r\n", __func__, ret);
+	rtos_deinit_semaphore(&cb->sema);
+	os_free(cb);
 
 	return ret;
 }
+
 
 int l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 		   const u8 *buf, size_t len)

@@ -364,7 +364,7 @@ static void wpa_supplicant_process_1_of_4(struct wpa_sm *sm,
 
 tx_failed:
 	bk_printf("%s: tx eapol failed\r\n", __func__);
-	return;				//server may retry to resend to us.
+	goto failed;			/* do not leave the association half-open */
 
 failed:
 	os_free(kde_buf);
@@ -1000,7 +1000,7 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 	
 tx_failed:
 	bk_printf("%s: tx eapol failed\r\n", __func__);
-	return;				//server may retry to resend to us.
+	goto failed;			/* do not leave the association half-open */
 
 failed:
 	wpa_sm_deauthenticate(sm, WLAN_REASON_UNSPECIFIED);
@@ -1250,7 +1250,7 @@ static void wpa_supplicant_process_1_of_2(struct wpa_sm *sm,
 
 tx_failed:
 	wpa_dbg("%s: tx eapol failed\r\n",MSG_WARNING,  __func__);
-	return;				//server may retry to resend to us.
+	goto failed;			/* do not leave the association half-open */
 
 failed:
 	os_memset(&gd, 0, sizeof(gd));

@@ -595,20 +595,33 @@ void ieee80211_data_tx_cb(void *param)
 {
 	struct txdesc *txdesc_new = (struct txdesc *)param;
 	MSDU_NODE_T *node = (MSDU_NODE_T *)txdesc_new->host.msdu_node;
-	struct tx_hd *txhd = &txdesc_new->lmac.hw_desc->thd;
-	struct ieee80211_tx_cb *cb = (struct ieee80211_tx_cb *)node->args;
-	uint32_t status = txhd->statinfo;
+	struct ieee80211_tx_cb *cb;
+	uint32_t status;
 
 	if(0 == node)
 	{
 		os_printf("zero_node\r\n");
 		return;
 	}
-	
+
+	cb = (struct ieee80211_tx_cb *)node->args;
+	if(0 == cb)
+	{
+		return;
+	}
+
+	/* cfm.status is the confirmation field: cleared before the frame is
+	 * pushed, written when the transmission completes. thd.statinfo keeps
+	 * a stale value from whichever frame last used this descriptor. */
+	status = txdesc_new->lmac.hw_desc->cfm.status;
+
 	if (status & FRAME_SUCCESSFUL_TX_BIT /*DESC_DONE_SW_TX_BIT*/) {
 		cb->result = RW_SUCCESS;
 	} else {
 		cb->result = RW_FAILURE;
+		os_printf("data_tx_cb: fail cfm=%08x thd=%08x\r\n",
+			  (unsigned)txdesc_new->lmac.hw_desc->cfm.status,
+			  (unsigned)txdesc_new->lmac.hw_desc->thd.statinfo);
 	}
 
 	rtos_set_semaphore(&cb->sema);
@@ -783,7 +796,20 @@ UINT32 rwm_transfer_node(MSDU_NODE_T *node, u8 flag)
 
 tx_exit:
     if (NULL != node)
+    {
+        /* No callback was ever registered for this frame, so a
+         * synchronous caller would wait out its whole timeout for a
+         * confirmation that cannot come. Fail it now. */
+        if (node->sync && node->args)
+        {
+            struct ieee80211_tx_cb *cb =
+                (struct ieee80211_tx_cb *)node->args;
+
+            cb->result = RW_FAILURE;
+            rtos_set_semaphore(&cb->sema);
+        }
         rwm_node_free(node);
+    }
 		
     #if NX_POWERSAVE
     txl_cntrl_dec_pck_cnt();
