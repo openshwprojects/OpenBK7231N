@@ -22,6 +22,9 @@
 #include "wpa_ie.h"
 #include "peerkey.h"
 
+/* FreeRTOS heap accounting, used by the failure diagnostics below. */
+extern size_t xPortGetFreeHeapSize(void);
+
 #include "include.h"
 #include "uart_pub.h"
 
@@ -363,8 +366,9 @@ static void wpa_supplicant_process_1_of_4(struct wpa_sm *sm,
 	return;
 
 tx_failed:
-	bk_printf("%s: tx eapol failed\r\n", __func__);
-	return;				//server may retry to resend to us.
+	bk_printf("%s: tx eapol failed, free heap %u\r\n", __func__,
+		  (unsigned)xPortGetFreeHeapSize());
+	goto failed;			/* do not leave the association half-open */
 
 failed:
 	os_free(kde_buf);
@@ -844,8 +848,11 @@ int wpa_supplicant_send_4_of_4(struct wpa_sm *sm, const unsigned char *dst,
 	hdrlen = mic_len == 24 ? sizeof(*reply192) : sizeof(*reply);
 	rbuf = wpa_sm_alloc_eapol(sm, IEEE802_1X_TYPE_EAPOL_KEY, NULL,
 				  hdrlen, &rlen, (void *) &reply);
-	if (rbuf == NULL)
+	if (rbuf == NULL) {
+		bk_printf("send_4_of_4: alloc %u failed, free heap %u\r\n",
+			  (unsigned)hdrlen, (unsigned)xPortGetFreeHeapSize());
 		return -1;
+	}
 	reply192 = (struct wpa_eapol_key_192 *) reply;
 
 	reply->type = (sm->proto == WPA_PROTO_RSN ||
@@ -999,8 +1006,9 @@ static void wpa_supplicant_process_3_of_4(struct wpa_sm *sm,
 	return;
 	
 tx_failed:
-	bk_printf("%s: tx eapol failed\r\n", __func__);
-	return;				//server may retry to resend to us.
+	bk_printf("%s: tx eapol failed, free heap %u\r\n", __func__,
+		  (unsigned)xPortGetFreeHeapSize());
+	goto failed;			/* do not leave the association half-open */
 
 failed:
 	wpa_sm_deauthenticate(sm, WLAN_REASON_UNSPECIFIED);
@@ -1250,7 +1258,7 @@ static void wpa_supplicant_process_1_of_2(struct wpa_sm *sm,
 
 tx_failed:
 	wpa_dbg("%s: tx eapol failed\r\n",MSG_WARNING,  __func__);
-	return;				//server may retry to resend to us.
+	goto failed;			/* do not leave the association half-open */
 
 failed:
 	os_memset(&gd, 0, sizeof(gd));
