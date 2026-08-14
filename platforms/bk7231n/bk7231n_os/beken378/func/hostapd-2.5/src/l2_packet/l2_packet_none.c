@@ -36,6 +36,18 @@ struct l2_packet_data {
 	int l2_hdr; /* whether to include layer 2 (Ethernet) header data
 		     * buffers */
 	int fd;
+	/* One TX control block per interface instead of one per send. The TX
+	 * path keeps a pointer to it in S_TYPE_ST->args and may confirm after
+	 * we have stopped waiting, so the block has to outlive the call: on the
+	 * stack it is a use-after-return, and a per-send allocation has to be
+	 * abandoned on every timeout for the same reason. Reusing one block
+	 * bounds that to a single allocation. Idea from @renren3221 in
+	 * openshwprojects/OpenBK7231T_App#2175.
+	 *
+	 * It is heap-allocated rather than embedded because l2_packet_deinit()
+	 * frees the l2 instance, and a confirmation may still be pending. */
+	struct ieee80211_tx_cb *tx_cb;
+	int tx_pending;		/* confirmation still owed for the last send */
 };
 
 
@@ -81,30 +93,32 @@ int __l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 	type_ptr->sync = sync;
 
 	if (sync) {
-		/* The TX path may complete after we have given up waiting, so the
-		 * control block must not live on this stack frame. */
-		cb = os_zalloc(sizeof(*cb));
-		if (cb == NULL) {
-			os_free(data_buf);
-			os_free(type_ptr);
-			return -1;
-		}
-		cb->result = -1;
+		if (l2->tx_cb == NULL) {
+			l2->tx_cb = os_zalloc(sizeof(*l2->tx_cb));
+			if (l2->tx_cb == NULL) {
+				os_free(data_buf);
+				os_free(type_ptr);
+				return -1;
+			}
 #if CFG_SUPPORT_ALIOS
-		rtos_init_semaphore(&cb->sema, 0);
+			rtos_init_semaphore(&l2->tx_cb->sema, 0);
 #else
-		rtos_init_semaphore(&cb->sema, 1);
+			rtos_init_semaphore(&l2->tx_cb->sema, 1);
 #endif
+		} else if (l2->tx_pending) {
+			/* Drop a confirmation left over from a send that timed
+			 * out, so it cannot release this one instead. */
+			while (rtos_get_semaphore(&l2->tx_cb->sema, 0) == kNoErr)
+				;
+		}
+		cb = l2->tx_cb;
+		cb->result = -1;
 		type_ptr->args = (void *)cb;
 	}
 
 	/* Ownership of type_ptr (and of cb through it) transfers to the TX path
 	 * only once the frame has actually been queued. */
 	if (fsocket_send(l2->fd, data_buf, data_len, type_ptr) <= 0) {
-		if (cb) {
-			rtos_deinit_semaphore(&cb->sema);
-			os_free(cb);
-		}
 		os_free(type_ptr);
 		os_free(data_buf);
 		return -1;
@@ -116,19 +130,20 @@ int __l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 		return 0;
 	}
 
+	l2->tx_pending = 1;
+
 	ret = rtos_get_semaphore(&cb->sema, EAPOL_TX_CONFIRM_TIMEOUT_MS);
 	if (ret != kNoErr) {
-		/* The frame is still queued and still points at cb. Deliberately
-		 * leave cb allocated: a late completion writing into freed memory
-		 * would be far worse than losing a few bytes here. */
+		/* The frame is still queued and still points at cb, so the block
+		 * stays alive and tx_pending stays set. The next send drains the
+		 * stale confirmation before reusing it. */
 		bk_printf("%s: send failed\r\n", __func__);
 		return -1;
 	}
 
+	l2->tx_pending = 0;
 	ret = cb->result;
 	bk_printf("%s: ret %d\r\n", __func__, ret);
-	rtos_deinit_semaphore(&cb->sema);
-	os_free(cb);
 
 	return ret;
 }
@@ -234,7 +249,21 @@ void l2_packet_deinit(struct l2_packet_data *l2)
 		/* TODO: close connection */
 		fsocket_close(l2->fd);
 	}
-		
+
+	if (l2->tx_cb != NULL) {
+		if (l2->tx_pending) {
+			/* A confirmation is still owed and the TX path still
+			 * points at this block, so it has to stay. One block
+			 * abandoned per interface teardown is the price of not
+			 * letting a late completion write into freed memory. */
+			bk_printf("%s: tx confirm still pending, keeping cb\r\n",
+				  __func__);
+		} else {
+			rtos_deinit_semaphore(&l2->tx_cb->sema);
+			os_free(l2->tx_cb);
+		}
+	}
+
 	os_free(l2);
 }
 
