@@ -59,6 +59,7 @@ SECTIONS
         /* itcm 8KB code */
         *(.text.intc_hdl_entry)
         *(.text.intc_irq)
+        *(.text.WS2811BB_SendRam)
         *(.text.intc_fiq)
         *(.text.bk_timer_isr)
         *(.text.power_save_wakeup_isr)
