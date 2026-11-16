@@ -20,6 +20,12 @@
 
 #define L2_RX_TMP_BUF_LEN     512
 
+/* Above the LMAC TX_TIMEOUT watchdog (2 s for AC_BE/VI), which escalates to
+ * txl_reset() and does confirm the descriptors, so a real hardware stall is
+ * still rescued; below the AP's ~3 s 4-way handshake window, so a lost
+ * confirmation cannot outlive the exchange it belongs to. */
+#define EAPOL_TX_CONFIRM_TIMEOUT_MS   2500
+
 struct l2_packet_data {
 	char ifname[17];
 	u8 own_addr[ETH_ALEN];
@@ -30,6 +36,18 @@ struct l2_packet_data {
 	int l2_hdr; /* whether to include layer 2 (Ethernet) header data
 		     * buffers */
 	int fd;
+	/* One TX control block per interface instead of one per send. The TX
+	 * path keeps a pointer to it in S_TYPE_ST->args and may confirm after
+	 * we have stopped waiting, so the block has to outlive the call: on the
+	 * stack it is a use-after-return, and a per-send allocation has to be
+	 * abandoned on every timeout for the same reason. Reusing one block
+	 * bounds that to a single allocation. Idea from @renren3221 in
+	 * openshwprojects/OpenBK7231T_App#2175.
+	 *
+	 * It is heap-allocated rather than embedded because l2_packet_deinit()
+	 * frees the l2 instance, and a confirmation may still be pending. */
+	struct ieee80211_tx_cb *tx_cb;
+	int tx_pending;		/* confirmation still owed for the last send */
 };
 
 
@@ -48,24 +66,20 @@ int __l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 {
 	int data_len, ret = 0;
 	struct l2_ethhdr *eth;
-    S_TYPE_PTR type_ptr;
+	S_TYPE_PTR type_ptr;
 	unsigned char *data_buf = NULL;
-	struct ieee80211_tx_cb cb;	//control block
+	struct ieee80211_tx_cb *cb = NULL;	//control block
 
 	type_ptr = os_zalloc(sizeof(S_TYPE_ST));
-    if(!type_ptr) {
-		ret = -1;
-        if(type_ptr){
-            os_free(type_ptr);
-        }
-		goto send_exit;
-    }
+	if (!type_ptr) {
+		return -1;
+	}
 
 	data_len = len + sizeof(struct l2_ethhdr);
 	data_buf = os_zalloc(data_len);
-	if(data_buf == NULL){
-		ret = -1;
-		goto send_exit;
+	if (data_buf == NULL) {
+		os_free(type_ptr);
+		return -1;
 	}
 
 	eth = (struct l2_ethhdr *) data_buf;
@@ -74,40 +88,66 @@ int __l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 	eth->h_proto = host_to_be16(proto);
 	os_memcpy(eth+1, buf, len);
 
-    type_ptr->type = HOSTAPD_DATA;
-
-    type_ptr->vif_index = l2->vif_index;
+	type_ptr->type = HOSTAPD_DATA;
+	type_ptr->vif_index = l2->vif_index;
 	type_ptr->sync = sync;
 
-	cb.result = -1;
 	if (sync) {
+		if (l2->tx_cb == NULL) {
+			l2->tx_cb = os_zalloc(sizeof(*l2->tx_cb));
+			if (l2->tx_cb == NULL) {
+				os_free(data_buf);
+				os_free(type_ptr);
+				return -1;
+			}
 #if CFG_SUPPORT_ALIOS
-		ret = rtos_init_semaphore(&cb.sema, 0);
+			rtos_init_semaphore(&l2->tx_cb->sema, 0);
 #else
-		ret = rtos_init_semaphore(&cb.sema, 1);
+			rtos_init_semaphore(&l2->tx_cb->sema, 1);
 #endif
-		type_ptr->args = (void *)&cb;
-	}
-
-	fsocket_send(l2->fd, data_buf, data_len, type_ptr);
-	if (sync) {
-		ret = rtos_get_semaphore(&cb.sema, 5*1000 /*BEKEN_NEVER_TIMEOUT*/);
-		if (ret != kNoErr) {
-			bk_printf("%s: send failed\r\n", __func__);
-		} else {
-			ret = cb.result;
-			bk_printf("%s: ret %d\r\n", __func__, ret);
+		} else if (l2->tx_pending) {
+			/* Drop a confirmation left over from a send that timed
+			 * out, so it cannot release this one instead. */
+			while (rtos_get_semaphore(&l2->tx_cb->sema, 0) == kNoErr)
+				;
 		}
-		rtos_deinit_semaphore(&cb.sema);
+		cb = l2->tx_cb;
+		cb->result = -1;
+		type_ptr->args = (void *)cb;
 	}
 
-send_exit:
-	if(data_buf){
+	/* Ownership of type_ptr (and of cb through it) transfers to the TX path
+	 * only once the frame has actually been queued. */
+	if (fsocket_send(l2->fd, data_buf, data_len, type_ptr) <= 0) {
+		os_free(type_ptr);
 		os_free(data_buf);
+		return -1;
 	}
+
+	os_free(data_buf);
+
+	if (!sync) {
+		return 0;
+	}
+
+	l2->tx_pending = 1;
+
+	ret = rtos_get_semaphore(&cb->sema, EAPOL_TX_CONFIRM_TIMEOUT_MS);
+	if (ret != kNoErr) {
+		/* The frame is still queued and still points at cb, so the block
+		 * stays alive and tx_pending stays set. The next send drains the
+		 * stale confirmation before reusing it. */
+		bk_printf("%s: send failed\r\n", __func__);
+		return -1;
+	}
+
+	l2->tx_pending = 0;
+	ret = cb->result;
+	bk_printf("%s: ret %d\r\n", __func__, ret);
 
 	return ret;
 }
+
 
 int l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 		   const u8 *buf, size_t len)
@@ -209,7 +249,21 @@ void l2_packet_deinit(struct l2_packet_data *l2)
 		/* TODO: close connection */
 		fsocket_close(l2->fd);
 	}
-		
+
+	if (l2->tx_cb != NULL) {
+		if (l2->tx_pending) {
+			/* A confirmation is still owed and the TX path still
+			 * points at this block, so it has to stay. One block
+			 * abandoned per interface teardown is the price of not
+			 * letting a late completion write into freed memory. */
+			bk_printf("%s: tx confirm still pending, keeping cb\r\n",
+				  __func__);
+		} else {
+			rtos_deinit_semaphore(&l2->tx_cb->sema);
+			os_free(l2->tx_cb);
+		}
+	}
+
 	os_free(l2);
 }
 
